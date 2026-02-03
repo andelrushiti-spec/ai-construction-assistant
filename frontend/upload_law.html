@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Law - AI Construction Assistant</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="/static/js/translations.js" defer></script>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo" data-translate="appTitle">
+                🏗️ AI Construction Assistant
+            </div>
+            <nav class="nav-links">
+                <a href="/dashboard" data-translate="dashboard">Dashboard</a>
+                <a href="#" onclick="appFunctions.logout(); return false;" data-translate="logout">Logout</a>
+            </nav>
+        </div>
+    </div>
+
+    <div class="container">
+        <a href="/dashboard" style="color: var(--primary-color); text-decoration: none; display: inline-block; margin-bottom: 20px;">
+            ← Back to Dashboard
+        </a>
+
+        <div class="card">
+            <h1 class="card-header">Upload Albanian Construction Law</h1>
+
+            <div id="project-info" class="alert alert-info mb-20">
+                <span id="project-name-display">Loading project...</span>
+            </div>
+
+            <div id="upload-area">
+                <!-- Law Metadata (Optional) -->
+                <div class="mb-20">
+                    <h3 style="color: var(--primary-color); margin-bottom: 15px;">Law Information (Optional)</h3>
+
+                    <div class="form-group">
+                        <label class="form-label" for="law-number">Law Number</label>
+                        <input type="text" id="law-number" class="form-input" placeholder="e.g., 32/5">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="law-title">Law Title</label>
+                        <input type="text" id="law-title" class="form-input" placeholder="e.g., Albanian Construction Safety Law">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="law-year">Year</label>
+                        <input type="number" id="law-year" class="form-input" placeholder="e.g., 2025" min="1900" max="2100">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="law-update">Update Version</label>
+                        <input type="text" id="law-update" class="form-input" placeholder="e.g., 2025 Amendment">
+                    </div>
+                </div>
+
+                <!-- File Upload -->
+                <div class="file-upload-area" id="drop-zone">
+                    <div class="file-upload-icon">⚖️</div>
+                    <h3>Drag & Drop Document Here</h3>
+                    <p style="color: var(--text-light);">PDF, Word (.docx, .doc), or Pages</p>
+                    <p style="font-size: 0.9rem; color: var(--text-light); margin-top: 10px;">
+                        Maximum file size: 50MB
+                    </p>
+                </div>
+                <input type="file" id="file-input" accept=".pdf,.docx,.doc,.pages" style="display: none;">
+            </div>
+
+            <div id="upload-progress" class="hidden">
+                <h3 style="margin-bottom: 15px;">Uploading Law...</h3>
+
+                <div class="progress-bar" id="progress-bar">
+                    <div class="progress-fill" style="width: 0%;">0%</div>
+                </div>
+
+                <p id="file-name" style="margin-top: 15px; color: var(--text-light);"></p>
+
+                <div class="alert alert-info mt-20">
+                    ℹ️ The law will be processed in the background. This may take 5-15 minutes depending on the file size.
+                    You can close this page and check back later.
+                </div>
+            </div>
+
+            <div id="upload-complete" class="hidden">
+                <div class="alert alert-success">
+                    ✅ Law uploaded successfully! Processing has started in the background.
+                </div>
+
+                <div id="processing-status" class="card">
+                    <h3 style="color: var(--primary-color); margin-bottom: 15px;">Processing Status</h3>
+                    <div id="status-content">
+                        <div class="spinner"></div>
+                        <p class="text-center">Checking status...</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-10 mt-20">
+                    <button class="btn btn-primary" onclick="window.location.href='/upload/law?project=' + getProjectId()">
+                        Upload Another Law
+                    </button>
+                    <button class="btn btn-outline" onclick="window.location.href='/dashboard'">
+                        Back to Dashboard
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="color: var(--primary-color); margin-bottom: 15px;">Common Albanian Construction Laws</h3>
+            <ul style="line-height: 2; color: var(--text-light);">
+                <li>Law No. 107/2014 - On Planning and Development of Territory</li>
+                <li>Law No. 10433/2011 - On Construction Inspection</li>
+                <li>Law No. 9780/2007 - On Construction Inspections</li>
+                <li>Law No. 10131/2009 - On Fire Protection Service</li>
+                <li>VKM No. 433/2015 - Construction Technical Standards</li>
+                <li>Labor Code - Construction Worker Safety</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="/static/js/scripts.js"></script>
+    <script>
+        let projectId = null;
+        let currentLawId = null;
+        let statusCheckInterval = null;
+
+        // Get project ID from URL
+        function getProjectId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('project');
+        }
+
+        // Check authentication
+        async function checkAuth() {
+            const isAuth = await appFunctions.checkAuth();
+            if (!isAuth) {
+                window.location.href = '/';
+            }
+        }
+
+        checkAuth();
+
+        // Load project info
+        async function loadProject() {
+            projectId = getProjectId();
+
+            if (!projectId) {
+                appFunctions.showAlert('No project specified', 'error');
+                setTimeout(() => window.location.href = '/dashboard', 2000);
+                return;
+            }
+
+            const project = await appFunctions.getProjectDetails(projectId);
+
+            if (project) {
+                document.getElementById('project-name-display').textContent = `Project: ${project.name}`;
+            } else {
+                appFunctions.showAlert('Project not found', 'error');
+                setTimeout(() => window.location.href = '/dashboard', 2000);
+            }
+        }
+
+        loadProject();
+
+        // Setup file upload
+        appFunctions.setupFileUpload('drop-zone', 'file-input', handleFileSelected);
+
+        function handleFileSelected(file) {
+            const fileName = file.name.toLowerCase();
+            const validExtensions = ['.pdf', '.docx', '.doc', '.pages'];
+            const isValid = validExtensions.some(ext => fileName.endsWith(ext));
+
+            if (!isValid) {
+                appFunctions.showAlert('Please select a PDF, Word (.docx, .doc), or Pages file', 'error');
+                return;
+            }
+
+            if (file.size > 50 * 1024 * 1024) {
+                appFunctions.showAlert('File size exceeds 50MB limit', 'error');
+                return;
+            }
+
+            uploadFile(file);
+        }
+
+        async function uploadFile(file) {
+            // Collect metadata
+            const metadata = {
+                law_number: document.getElementById('law-number').value.trim(),
+                law_title: document.getElementById('law-title').value.trim(),
+                year: document.getElementById('law-year').value.trim(),
+                update_version: document.getElementById('law-update').value.trim()
+            };
+
+            // Show progress section
+            document.getElementById('upload-area').classList.add('hidden');
+            document.getElementById('upload-progress').classList.remove('hidden');
+            document.getElementById('file-name').textContent = `File: ${file.name}`;
+
+            try {
+                const law = await appFunctions.uploadLaw(
+                    projectId,
+                    file,
+                    metadata,
+                    (percentage) => {
+                        appFunctions.updateProgressBar('progress-bar', percentage);
+                    }
+                );
+
+                if (law) {
+                    currentLawId = law.id;
+                    showUploadComplete();
+                    startStatusChecking();
+                }
+            } catch (error) {
+                document.getElementById('upload-progress').classList.add('hidden');
+                document.getElementById('upload-area').classList.remove('hidden');
+            }
+        }
+
+        function showUploadComplete() {
+            document.getElementById('upload-progress').classList.add('hidden');
+            document.getElementById('upload-complete').classList.remove('hidden');
+        }
+
+        function startStatusChecking() {
+            updateStatus();
+            statusCheckInterval = setInterval(updateStatus, 5000); // Check every 5 seconds
+        }
+
+        async function updateStatus() {
+            if (!currentLawId) return;
+
+            const response = await fetch(`http://localhost:5000/api/upload/law/${currentLawId}/status`, {
+                credentials: 'include'
+            });
+
+            if (!response.ok) return;
+
+            const data = await response.json();
+            const law = data.law;
+
+            const statusContent = document.getElementById('status-content');
+
+            let statusHtml = `
+                <div style="padding: 15px; background: var(--light-bg); border-radius: 5px;">
+                    <p><strong>Filename:</strong> ${escapeHtml(law.filename)}</p>
+                    ${law.law_number ? `<p><strong>Law Number:</strong> ${escapeHtml(law.law_number)}</p>` : ''}
+                    ${law.law_title ? `<p><strong>Title:</strong> ${escapeHtml(law.law_title)}</p>` : ''}
+                    <p><strong>Status:</strong> <span style="color: ${getStatusColor(law.status)};">${law.status}</span></p>
+            `;
+
+            if (law.pages) {
+                statusHtml += `<p><strong>Pages:</strong> ${law.pages}</p>`;
+            }
+
+            if (law.error_message) {
+                statusHtml += `<p style="color: var(--danger-color);"><strong>Error:</strong> ${escapeHtml(law.error_message)}</p>`;
+            }
+
+            statusHtml += `</div>`;
+
+            if (law.status === 'completed') {
+                statusHtml += `
+                    <div class="alert alert-success mt-20">
+                        ✅ Processing complete! You can now ask questions that reference this law.
+                    </div>
+                `;
+                clearInterval(statusCheckInterval);
+            } else if (law.status === 'failed') {
+                clearInterval(statusCheckInterval);
+            } else if (law.status === 'processing') {
+                statusHtml += `
+                    <div class="spinner mt-20"></div>
+                    <p class="text-center" style="color: var(--text-light);">Processing law... This may take several minutes.</p>
+                `;
+            }
+
+            statusContent.innerHTML = statusHtml;
+        }
+
+        function getStatusColor(status) {
+            switch(status) {
+                case 'completed': return 'var(--success-color)';
+                case 'failed': return 'var(--danger-color)';
+                case 'processing': return 'var(--warning-color)';
+                default: return 'var(--text-light)';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+
+    <div class="footer">
+        <div class="footer-content">
+            <p><strong data-translate="footerTitle">AI Construction Contract & Law Assistant</strong></p>
+            <p><span data-translate="developedBy">Developed by</span> <strong>Andel Albdesk</strong></p>
+            <p data-translate="copyright">&copy; 2026 Andel Albdesk. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

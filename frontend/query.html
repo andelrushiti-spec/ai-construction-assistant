@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ask Questions - AI Construction Assistant</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="/static/js/translations.js" defer></script>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo" data-translate="appTitle">
+                🏗️ AI Construction Assistant
+            </div>
+            <nav class="nav-links">
+                <a href="/dashboard" data-translate="dashboard">Dashboard</a>
+                <a href="#" onclick="appFunctions.logout(); return false;" data-translate="logout">Logout</a>
+            </nav>
+        </div>
+    </div>
+
+    <div class="container">
+        <a href="/dashboard" style="color: var(--primary-color); text-decoration: none; display: inline-block; margin-bottom: 20px;">
+            <span data-translate="back">← Back to Dashboard</span>
+        </a>
+
+        <div class="card">
+            <div class="flex-between mb-20">
+                <h1 class="card-header" style="margin: 0;" data-translate="askQuestionsTitle">Ask Questions About Contracts & Laws</h1>
+            </div>
+
+            <div id="project-info" class="alert alert-info mb-20">
+                <span id="project-name-display" data-translate="loadingProject">Loading project...</span>
+            </div>
+
+            <!-- Conversation Selector -->
+            <div class="mb-20">
+                <label class="form-label" data-translate="conversation">Conversation</label>
+                <div class="flex gap-10">
+                    <select id="conversation-select" class="form-input" onchange="loadConversation()" style="flex: 1;">
+                        <option value="" data-translate="startNewConversation">Start New Conversation</option>
+                    </select>
+                    <button class="btn btn-outline" onclick="startNewConversation()" data-translate="newChat">New Chat</button>
+                </div>
+            </div>
+
+            <!-- Query Input -->
+            <div class="query-box">
+                <textarea id="question-input" class="query-input" data-translate-placeholder="askPlaceholder" placeholder="Ask"></textarea>
+                <button class="btn btn-primary" onclick="askQuestion()" id="ask-btn" data-translate="askQuestion">
+                    Ask Question
+                </button>
+            </div>
+
+            <!-- Conversation History Display -->
+            <div id="conversation-history" class="mb-20" style="max-height: 600px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 5px; padding: 15px; background: var(--light-bg); min-height: 200px; user-select: text;">
+                <div id="messages-container"></div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loading-section" class="hidden text-center">
+                <div class="spinner"></div>
+                <p style="color: var(--text-light);" data-translate="loading">Loading...</p>
+            </div>
+        </div>
+
+        <!-- Conversation History -->
+        <div class="card">
+            <div class="flex-between mb-20">
+                <h2 class="card-header" style="margin: 0;" data-translate="yourConversations">Your Conversations</h2>
+                <button class="btn btn-outline" onclick="loadHistory()">🔄</button>
+            </div>
+            <p style="color: var(--text-light); margin-bottom: 15px; font-size: 0.9rem;" data-translate="conversationDescription">
+                Click on any conversation below to view and review all questions and answers.
+            </p>
+
+            <div id="history-container">
+                <div class="text-center">
+                    <div class="spinner"></div>
+                    <p data-translate="loadingHistory">Loading history...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Disclaimer -->
+        <div class="alert alert-warning">
+            ⚠️ <strong data-translate="disclaimer">Disclaimer:</strong> <span data-translate="disclaimerText">This tool interprets text from uploaded documents only. It is not a substitute for professional legal advice. Always consult with a qualified construction lawyer for critical decisions.</span>
+        </div>
+    </div>
+
+    <script src="/static/js/scripts.js"></script>
+    <script>
+        let projectId = null;
+        let currentLanguage = 'en';
+        let currentConversationId = null;
+        let conversations = [];
+
+        // Get project ID from URL
+        function getProjectId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('project');
+        }
+
+        // Check authentication
+        async function checkAuth() {
+            const isAuth = await appFunctions.checkAuth();
+            if (!isAuth) {
+                window.location.href = '/';
+            }
+        }
+
+        checkAuth();
+
+        // Load project info
+        async function loadProject() {
+            projectId = getProjectId();
+
+            if (!projectId) {
+                appFunctions.showAlert('No project specified', 'error');
+                setTimeout(() => window.location.href = '/dashboard', 2000);
+                return;
+            }
+
+            const project = await appFunctions.getProjectDetails(projectId);
+            const t = (key) => window.languageManager ? window.languageManager.translate(key) : key;
+
+            if (project) {
+                const contractsText = project.contracts.length + ' ' + (project.contracts.length === 1 ? t('contracts').slice(0, -1) : t('contracts'));
+                const lawsText = project.laws.length + ' ' + (project.laws.length === 1 ? t('laws').slice(0, -1) : t('laws'));
+
+                document.getElementById('project-name-display').textContent =
+                    `Project: ${project.name} | ${contractsText}, ${lawsText}`;
+
+                if (project.contracts.length === 0 && project.laws.length === 0) {
+                    appFunctions.showAlert('No documents uploaded yet. Please upload contracts and laws first.', 'warning');
+                }
+            } else {
+                appFunctions.showAlert('Project not found', 'error');
+                setTimeout(() => window.location.href = '/dashboard', 2000);
+            }
+        }
+
+        loadProject();
+        loadConversations();
+        loadHistory();
+
+        function setLanguage(lang) {
+            currentLanguage = lang;
+
+            // Update UI
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update placeholder based on language
+            const placeholder = lang === 'sq' ? 'Pyet' : 'Ask';
+            document.getElementById('question-input').placeholder = placeholder;
+        }
+
+        async function askQuestion() {
+            const question = document.getElementById('question-input').value.trim();
+
+            if (!question) {
+                appFunctions.showAlert('Please enter a question', 'warning');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loading-section').classList.remove('hidden');
+            document.getElementById('ask-btn').disabled = true;
+
+            try {
+                // Send question with conversation_id
+                const response = await fetch(`http://localhost:5000/api/query/${projectId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        question: question,
+                        conversation_id: currentConversationId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to get answer');
+                }
+
+                const result = await response.json();
+
+                // Update current conversation ID
+                currentConversationId = result.conversation_id;
+
+                // Clear input
+                document.getElementById('question-input').value = '';
+
+                // Fetch and display the conversation directly
+                const convResponse = await fetch(`http://localhost:5000/api/conversations/${currentConversationId}`, {
+                    credentials: 'include'
+                });
+
+                if (convResponse.ok) {
+                    const convData = await convResponse.json();
+                    displayMessages(convData.conversation.messages);
+                }
+
+                // Update the select dropdown to match the current conversation
+                await loadConversations();
+                document.getElementById('conversation-select').value = currentConversationId;
+
+                // Refresh history
+                loadHistory();
+
+            } catch (error) {
+                appFunctions.showAlert('Failed to get answer', 'error');
+            } finally {
+                document.getElementById('loading-section').classList.add('hidden');
+                document.getElementById('ask-btn').disabled = false;
+            }
+        }
+
+        async function loadConversations() {
+            const t = (key) => window.languageManager ? window.languageManager.translate(key) : key;
+            try {
+                const response = await fetch(`http://localhost:5000/api/conversations/project/${projectId}`, {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    conversations = data.conversations;
+
+                    // Update dropdown
+                    const select = document.getElementById('conversation-select');
+                    select.innerHTML = `<option value="">${t('startNewConversation')}</option>`;
+
+                    conversations.forEach(conv => {
+                        const option = document.createElement('option');
+                        option.value = conv.id;
+                        const messageText = conv.message_count === 1 ? t('message') : t('messages');
+                        option.textContent = `${conv.title} (${conv.message_count} ${messageText})`;
+                        select.appendChild(option);
+                    });
+
+                    // Select current conversation if set
+                    if (currentConversationId) {
+                        select.value = currentConversationId;
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load conversations:', error);
+            }
+        }
+
+        async function loadConversation() {
+            const t = (key) => window.languageManager ? window.languageManager.translate(key) : key;
+            const selectValue = document.getElementById('conversation-select').value;
+
+            if (!selectValue) {
+                // No conversation selected - start new
+                currentConversationId = null;
+                document.getElementById('messages-container').innerHTML = `
+                    <p class="text-center" style="color: var(--text-light); padding: 20px;">
+                        ${t('startNewConversationPrompt')}
+                    </p>
+                `;
+                return;
+            }
+
+            currentConversationId = parseInt(selectValue);
+
+            try {
+                const response = await fetch(`http://localhost:5000/api/conversations/${currentConversationId}`, {
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    displayMessages(data.conversation.messages);
+                }
+            } catch (error) {
+                console.error('Failed to load conversation:', error);
+                appFunctions.showAlert('Failed to load conversation', 'error');
+            }
+        }
+
+        function displayMessages(messages) {
+            const container = document.getElementById('messages-container');
+            const t = (key) => window.languageManager ? window.languageManager.translate(key) : key;
+
+            if (!messages || messages.length === 0) {
+                container.innerHTML = `
+                    <p class="text-center" style="color: var(--text-light); padding: 20px;">
+                        ${t('noMessagesYet')}
+                    </p>
+                `;
+                return;
+            }
+
+            let html = '';
+
+            messages.forEach(msg => {
+                // User question
+                html += `
+                    <div style="margin-bottom: 20px;">
+                        <div style="background: white; padding: 12px; border-radius: 8px; border-left: 3px solid var(--primary-color); box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                            <strong style="color: var(--primary-color);">${t('you')}:</strong>
+                            <div style="margin: 8px 0 0 0; white-space: pre-wrap;">${escapeHtml(msg.question)}</div>
+                        </div>
+                `;
+
+                // AI answer
+                html += `
+                        <div style="background: var(--success-light, #f0f9ff); padding: 12px; border-radius: 8px; margin-top: 10px; border-left: 3px solid var(--success-color); position: relative;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                <strong style="color: var(--success-color);">${t('aiAssistant')}:</strong>
+                                <button onclick="copyAnswer(${msg.id})" class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8rem;">
+                                    ${t('copyAnswer')}
+                                </button>
+                            </div>
+                            <div id="answer-${msg.id}" style="margin: 10px 0; white-space: pre-wrap; line-height: 1.6; user-select: text;">${escapeHtml(msg.answer)}</div>
+                `;
+
+                // Citations with source text
+                if (msg.citations && (msg.citations.contracts.length > 0 || msg.citations.laws.length > 0)) {
+                    html += `<div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.5); border-radius: 5px; font-size: 0.9rem;">`;
+                    html += `<div style="font-weight: bold; margin-bottom: 8px; color: var(--primary-color);">${t('sources')}</div>`;
+
+                    if (msg.citations.contracts.length > 0) {
+                        html += `<div style="margin-bottom: 8px;"><strong>${t('contractsLabel')}</strong></div>`;
+                        msg.citations.contracts.forEach((c, idx) => {
+                            const citationId = `contract-${msg.id}-${idx}`;
+                            console.log('Contract citation:', c, 'Has text:', !!c.text);
+
+                            html += `<div style="margin-left: 20px; margin-bottom: 10px; padding: 8px; background: white; border-radius: 5px; border: 1px solid #e0e0e0;">`;
+                            html += `<div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 5px;">`;
+                            html += `<div style="flex: 1;">`;
+                            html += `${idx + 1}. <strong>${escapeHtml(c.document)}</strong>`;
+                            if (c.page) html += ` - ${t('page')} ${c.page}`;
+                            if (c.clause) html += `, ${t('clause')}: ${escapeHtml(c.clause)}`;
+                            html += ` <span style="color: var(--text-light);">(${(c.score * 100).toFixed(0)}% ${t('relevant')})</span>`;
+                            html += `</div>`;
+
+                            // Always show the button
+                            html += `<button onclick="window.toggleSourceText('${citationId}')" class="btn btn-outline" style="padding: 2px 8px; font-size: 0.75rem; margin-left: 10px;">${t('showText')}</button>`;
+                            html += `</div>`;
+
+                            // Hidden content div
+                            html += `<div id="${citationId}" style="display: none; margin-top: 8px; padding: 10px; background: #f5f5f5; border-left: 3px solid var(--primary-color); border-radius: 3px; position: relative;">`;
+
+                            if (c.text && c.text.trim()) {
+                                html += `<button onclick="window.copySourceText('${citationId}-text')" class="btn btn-outline" style="position: absolute; top: 5px; right: 5px; padding: 3px 8px; font-size: 0.7rem;">${t('copyText')}</button>`;
+                                html += `<div id="${citationId}-text" style="white-space: pre-wrap; font-family: monospace; font-size: 0.85rem; line-height: 1.5; padding-right: 80px; user-select: text;">${escapeHtml(c.text)}</div>`;
+                            } else {
+                                html += `<div style="font-style: italic; color: var(--text-light);">${t('sourceTextNotAvailable')}</div>`;
+                            }
+
+                            html += `</div>`;
+                            html += `</div>`;
+                        });
+                    }
+
+                    if (msg.citations.laws.length > 0) {
+                        html += `<div style="margin-bottom: 8px; margin-top: 10px;"><strong>${t('lawsLabel')}</strong></div>`;
+                        msg.citations.laws.forEach((l, idx) => {
+                            const citationId = `law-${msg.id}-${idx}`;
+                            console.log('Law citation:', l, 'Has text:', !!l.text);
+
+                            html += `<div style="margin-left: 20px; margin-bottom: 10px; padding: 8px; background: white; border-radius: 5px; border: 1px solid #e0e0e0;">`;
+                            html += `<div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 5px;">`;
+                            html += `<div style="flex: 1;">`;
+                            html += `${idx + 1}. <strong>${escapeHtml(l.document)}</strong>`;
+                            if (l.page) html += ` - ${t('page')} ${l.page}`;
+                            if (l.article) html += `, ${t('article')}: ${escapeHtml(l.article)}`;
+                            html += ` <span style="color: var(--text-light);">(${(l.score * 100).toFixed(0)}% ${t('relevant')})</span>`;
+                            html += `</div>`;
+
+                            // Always show button
+                            html += `<button onclick="window.toggleSourceText('${citationId}')" class="btn btn-outline" style="padding: 2px 8px; font-size: 0.75rem; margin-left: 10px;">${t('showText')}</button>`;
+                            html += `</div>`;
+
+                            // Hidden content div
+                            html += `<div id="${citationId}" style="display: none; margin-top: 8px; padding: 10px; background: #f5f5f5; border-left: 3px solid var(--success-color); border-radius: 3px; position: relative;">`;
+                            if (l.text && l.text.trim()) {
+                                html += `<button onclick="window.copySourceText('${citationId}-text')" class="btn btn-outline" style="position: absolute; top: 5px; right: 5px; padding: 3px 8px; font-size: 0.7rem;">${t('copyText')}</button>`;
+                                html += `<div id="${citationId}-text" style="white-space: pre-wrap; font-family: monospace; font-size: 0.85rem; line-height: 1.5; padding-right: 80px; user-select: text;">${escapeHtml(l.text)}</div>`;
+                            } else {
+                                html += `<div style="font-style: italic; color: var(--text-light);">${t('sourceTextNotAvailable')}</div>`;
+                            }
+                            html += `</div>`;
+                            html += `</div>`;
+                        });
+                    }
+
+                    html += `</div>`;
+                }
+
+                html += `
+                            <div style="margin-top: 8px; font-size: 0.85rem; color: var(--text-light);">
+                                ${appFunctions.formatDate(msg.created_at)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+
+            // Scroll to bottom
+            const historyDiv = document.getElementById('conversation-history');
+            historyDiv.scrollTop = historyDiv.scrollHeight;
+        }
+
+        function startNewConversation() {
+            const t = (key) => window.languageManager ? window.languageManager.translate(key) : key;
+            currentConversationId = null;
+            document.getElementById('conversation-select').value = '';
+            document.getElementById('messages-container').innerHTML = `
+                <p class="text-center" style="color: var(--text-light); padding: 20px;">
+                    ${t('startNewConversationPrompt')}
+                </p>
+            `;
+            document.getElementById('question-input').focus();
+        }
+
+        async function loadHistory() {
+            const t = (key) => window.languageManager ? window.languageManager.translate(key) : key;
+            try {
+                // Get list of conversations instead of individual queries
+                const response = await fetch(`http://localhost:5000/api/conversations/project/${projectId}`, {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    console.error('Failed to load conversations');
+                    return;
+                }
+
+                const data = await response.json();
+                const conversations = data.conversations;
+
+                const container = document.getElementById('history-container');
+
+                if (conversations.length === 0) {
+                    container.innerHTML = `
+                        <p class="text-center" style="color: var(--text-light); padding: 20px;">
+                            ${t('noConversationsYet')}
+                        </p>
+                    `;
+                    return;
+                }
+
+                let html = '';
+
+                conversations.forEach(conv => {
+                    const isActive = currentConversationId === conv.id;
+                    const messageText = conv.message_count === 1 ? t('message') : t('messages');
+                    html += `
+                        <div class="card" style="margin-bottom: 15px; cursor: pointer; ${isActive ? 'border: 2px solid var(--primary-color);' : ''}"
+                             onclick="loadConversationFromHistory(${conv.id})">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                <strong style="color: var(--primary-color);">${escapeHtml(conv.title)}</strong>
+                                <small style="color: var(--text-light);">${appFunctions.formatDate(conv.updated_at)}</small>
+                            </div>
+                            <p style="color: var(--text-light); font-size: 0.9rem; margin: 0;">
+                                ${conv.message_count} ${messageText}
+                                ${isActive ? `<span style="color: var(--primary-color); font-weight: bold;"> • ${t('active')}</span>` : ''}
+                            </p>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading history:', error);
+            }
+        }
+
+        async function loadConversationFromHistory(conversationId) {
+            // Set the conversation in the dropdown
+            currentConversationId = conversationId;
+            document.getElementById('conversation-select').value = conversationId;
+
+            // Load the conversation
+            await loadConversation();
+
+            // Scroll to conversation area
+            document.getElementById('conversation-history').scrollIntoView({ behavior: 'smooth' });
+
+            // Refresh history to show active state
+            loadHistory();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        window.copyAnswer = function(messageId) {
+            const t = (key) => window.languageManager ? window.languageManager.translate(key) : key;
+            const answerElement = document.getElementById(`answer-${messageId}`);
+            if (!answerElement) {
+                console.error('Answer element not found:', messageId);
+                return;
+            }
+
+            const text = answerElement.textContent;
+
+            navigator.clipboard.writeText(text).then(() => {
+                // Show feedback
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = t('copiedSuccess');
+                btn.style.backgroundColor = 'var(--success-color)';
+                btn.style.color = 'white';
+
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.backgroundColor = '';
+                    btn.style.color = '';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                appFunctions.showAlert('Failed to copy text', 'error');
+            });
+        }
+
+        window.toggleSourceText = function(citationId) {
+            const t = (key) => window.languageManager ? window.languageManager.translate(key) : key;
+            console.log('Toggle source text:', citationId);
+            const element = document.getElementById(citationId);
+
+            if (!element) {
+                console.error('Element not found:', citationId);
+                return;
+            }
+
+            if (element.style.display === 'none' || element.style.display === '') {
+                element.style.display = 'block';
+                event.target.textContent = t('hideText');
+            } else {
+                element.style.display = 'none';
+                event.target.textContent = t('showText');
+            }
+        }
+
+        window.copySourceText = function(textElementId) {
+            const t = (key) => window.languageManager ? window.languageManager.translate(key) : key;
+            console.log('Copy source text:', textElementId);
+            const textElement = document.getElementById(textElementId);
+
+            if (!textElement) {
+                console.error('Text element not found:', textElementId);
+                return;
+            }
+
+            const text = textElement.textContent;
+
+            navigator.clipboard.writeText(text).then(() => {
+                // Show feedback
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = t('copiedSuccess');
+                btn.style.backgroundColor = 'var(--success-color)';
+                btn.style.color = 'white';
+
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.backgroundColor = '';
+                    btn.style.color = '';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                appFunctions.showAlert('Failed to copy source text', 'error');
+            });
+        }
+
+        // Allow Enter + Shift to submit
+        document.getElementById('question-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.shiftKey) {
+                e.preventDefault();
+                askQuestion();
+            }
+        });
+
+        // Reload content when language changes
+        window.addEventListener('languageChanged', () => {
+            loadProject();
+            loadConversations();
+            loadHistory();
+            // Reload current conversation if one is selected
+            if (currentConversationId) {
+                loadConversation();
+            }
+        });
+    </script>
+
+    <div class="footer">
+        <div class="footer-content">
+            <p><strong data-translate="footerTitle">AI Construction Contract & Law Assistant</strong></p>
+            <p><span data-translate="developedBy">Developed by</span> <strong>Andel Albdesk</strong></p>
+            <p data-translate="copyright">&copy; 2026 Andel Albdesk. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

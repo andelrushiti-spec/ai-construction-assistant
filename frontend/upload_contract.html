@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Contract - AI Construction Assistant</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="/static/js/translations.js" defer></script>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo" data-translate="appTitle">
+                🏗️ AI Construction Assistant
+            </div>
+            <nav class="nav-links">
+                <a href="/dashboard" data-translate="dashboard">Dashboard</a>
+                <a href="#" onclick="appFunctions.logout(); return false;" data-translate="logout">Logout</a>
+            </nav>
+        </div>
+    </div>
+
+    <div class="container">
+        <a href="/dashboard" style="color: var(--primary-color); text-decoration: none; display: inline-block; margin-bottom: 20px;">
+            ← Back to Dashboard
+        </a>
+
+        <div class="card">
+            <h1 class="card-header">Upload Construction Contract</h1>
+
+            <div id="project-info" class="alert alert-info mb-20">
+                <span id="project-name-display">Loading project...</span>
+            </div>
+
+            <div id="upload-area">
+                <div class="file-upload-area" id="drop-zone">
+                    <div class="file-upload-icon">📄</div>
+                    <h3>Drag & Drop Document Here</h3>
+                    <p style="color: var(--text-light);">PDF, Word (.docx, .doc), or Pages</p>
+                    <p style="font-size: 0.9rem; color: var(--text-light); margin-top: 10px;">
+                        Maximum file size: 50MB
+                    </p>
+                </div>
+                <input type="file" id="file-input" accept=".pdf,.docx,.doc,.pages" style="display: none;">
+            </div>
+
+            <div id="upload-progress" class="hidden">
+                <h3 style="margin-bottom: 15px;">Uploading Contract...</h3>
+
+                <div class="progress-bar" id="progress-bar">
+                    <div class="progress-fill" style="width: 0%;">0%</div>
+                </div>
+
+                <p id="file-name" style="margin-top: 15px; color: var(--text-light);"></p>
+
+                <div class="alert alert-info mt-20">
+                    ℹ️ The contract will be processed in the background. This may take 5-15 minutes depending on the file size.
+                    You can close this page and check back later.
+                </div>
+            </div>
+
+            <div id="upload-complete" class="hidden">
+                <div class="alert alert-success">
+                    ✅ Contract uploaded successfully! Processing has started in the background.
+                </div>
+
+                <div id="processing-status" class="card">
+                    <h3 style="color: var(--primary-color); margin-bottom: 15px;">Processing Status</h3>
+                    <div id="status-content">
+                        <div class="spinner"></div>
+                        <p class="text-center">Checking status...</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-10 mt-20">
+                    <button class="btn btn-primary" onclick="window.location.href='/upload/contract?project=' + getProjectId()">
+                        Upload Another Contract
+                    </button>
+                    <button class="btn btn-outline" onclick="window.location.href='/dashboard'">
+                        Back to Dashboard
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="color: var(--primary-color); margin-bottom: 15px;">About Document Processing</h3>
+            <ul style="line-height: 2; color: var(--text-light);">
+                <li>✓ Supports PDF, Word (.docx, .doc), and Apple Pages documents</li>
+                <li>✓ Digital PDFs work best (OCR for scanned PDFs when available)</li>
+                <li>✓ Word and Pages files are automatically extracted</li>
+                <li>✓ Documents are chunked and indexed for AI queries</li>
+                <li>✓ Original files are deleted after processing (privacy-first)</li>
+                <li>✓ You can ask questions once processing is complete</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="/static/js/scripts.js"></script>
+    <script>
+        let projectId = null;
+        let currentContractId = null;
+        let statusCheckInterval = null;
+
+        // Get project ID from URL
+        function getProjectId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('project');
+        }
+
+        // Check authentication
+        async function checkAuth() {
+            const isAuth = await appFunctions.checkAuth();
+            if (!isAuth) {
+                window.location.href = '/';
+            }
+        }
+
+        checkAuth();
+
+        // Load project info
+        async function loadProject() {
+            projectId = getProjectId();
+
+            if (!projectId) {
+                appFunctions.showAlert('No project specified', 'error');
+                setTimeout(() => window.location.href = '/dashboard', 2000);
+                return;
+            }
+
+            const project = await appFunctions.getProjectDetails(projectId);
+
+            if (project) {
+                document.getElementById('project-name-display').textContent = `Project: ${project.name}`;
+            } else {
+                appFunctions.showAlert('Project not found', 'error');
+                setTimeout(() => window.location.href = '/dashboard', 2000);
+            }
+        }
+
+        loadProject();
+
+        // Setup file upload
+        appFunctions.setupFileUpload('drop-zone', 'file-input', handleFileSelected);
+
+        function handleFileSelected(file) {
+            const fileName = file.name.toLowerCase();
+            const validExtensions = ['.pdf', '.docx', '.doc', '.pages'];
+            const isValid = validExtensions.some(ext => fileName.endsWith(ext));
+
+            if (!isValid) {
+                appFunctions.showAlert('Please select a PDF, Word (.docx, .doc), or Pages file', 'error');
+                return;
+            }
+
+            if (file.size > 50 * 1024 * 1024) {
+                appFunctions.showAlert('File size exceeds 50MB limit', 'error');
+                return;
+            }
+
+            uploadFile(file);
+        }
+
+        async function uploadFile(file) {
+            // Show progress section
+            document.getElementById('upload-area').classList.add('hidden');
+            document.getElementById('upload-progress').classList.remove('hidden');
+            document.getElementById('file-name').textContent = `File: ${file.name}`;
+
+            try {
+                const contract = await appFunctions.uploadContract(
+                    projectId,
+                    file,
+                    (percentage) => {
+                        appFunctions.updateProgressBar('progress-bar', percentage);
+                    }
+                );
+
+                if (contract) {
+                    currentContractId = contract.id;
+                    showUploadComplete();
+                    startStatusChecking();
+                }
+            } catch (error) {
+                document.getElementById('upload-progress').classList.add('hidden');
+                document.getElementById('upload-area').classList.remove('hidden');
+            }
+        }
+
+        function showUploadComplete() {
+            document.getElementById('upload-progress').classList.add('hidden');
+            document.getElementById('upload-complete').classList.remove('hidden');
+        }
+
+        function startStatusChecking() {
+            updateStatus();
+            statusCheckInterval = setInterval(updateStatus, 5000); // Check every 5 seconds
+        }
+
+        async function updateStatus() {
+            if (!currentContractId) return;
+
+            const contract = await appFunctions.getContractStatus(currentContractId);
+
+            if (!contract) return;
+
+            const statusContent = document.getElementById('status-content');
+
+            let statusHtml = `
+                <div style="padding: 15px; background: var(--light-bg); border-radius: 5px;">
+                    <p><strong>Filename:</strong> ${escapeHtml(contract.filename)}</p>
+                    <p><strong>Status:</strong> <span style="color: ${getStatusColor(contract.status)};">${contract.status}</span></p>
+            `;
+
+            if (contract.pages) {
+                statusHtml += `<p><strong>Pages:</strong> ${contract.pages}</p>`;
+            }
+
+            if (contract.error_message) {
+                statusHtml += `<p style="color: var(--danger-color);"><strong>Error:</strong> ${escapeHtml(contract.error_message)}</p>`;
+            }
+
+            statusHtml += `</div>`;
+
+            if (contract.status === 'completed') {
+                statusHtml += `
+                    <div class="alert alert-success mt-20">
+                        ✅ Processing complete! You can now ask questions about this contract.
+                    </div>
+                `;
+                clearInterval(statusCheckInterval);
+            } else if (contract.status === 'failed') {
+                clearInterval(statusCheckInterval);
+            } else if (contract.status === 'processing') {
+                statusHtml += `
+                    <div class="spinner mt-20"></div>
+                    <p class="text-center" style="color: var(--text-light);">Processing contract... This may take several minutes.</p>
+                `;
+            }
+
+            statusContent.innerHTML = statusHtml;
+        }
+
+        function getStatusColor(status) {
+            switch(status) {
+                case 'completed': return 'var(--success-color)';
+                case 'failed': return 'var(--danger-color)';
+                case 'processing': return 'var(--warning-color)';
+                default: return 'var(--text-light)';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+
+    <div class="footer">
+        <div class="footer-content">
+            <p><strong data-translate="footerTitle">AI Construction Contract & Law Assistant</strong></p>
+            <p><span data-translate="developedBy">Developed by</span> <strong>Andel Albdesk</strong></p>
+            <p data-translate="copyright">&copy; 2026 Andel Albdesk. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

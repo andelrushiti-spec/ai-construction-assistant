@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - AI Construction Assistant</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="/static/js/translations.js" defer></script>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo" data-translate="appTitle">
+                🏗️ AI Construction Assistant
+            </div>
+            <nav class="nav-links">
+                <a href="/dashboard" data-translate="dashboard">Dashboard</a>
+                <a href="#" onclick="appFunctions.logout(); return false;" data-translate="logout">Logout</a>
+            </nav>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="flex-between mb-20">
+            <h1 style="color: var(--primary-color);" data-translate="myProjects">My Projects</h1>
+            <button class="btn btn-primary" onclick="showCreateProjectModal()" data-translate="createNewProject">
+                + Create New Project
+            </button>
+        </div>
+
+        <!-- Create Project Modal -->
+        <div id="create-project-modal" class="card hidden">
+            <h2 class="card-header" data-translate="createNewProject">Create New Project</h2>
+            <form onsubmit="handleCreateProject(event)">
+                <div class="form-group">
+                    <label class="form-label" for="project-name" data-translate="projectName">Project Name</label>
+                    <input type="text" id="project-name" class="form-input" data-translate-placeholder="projectNamePlaceholder" placeholder="e.g., Tirana Construction Project" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="project-description" data-translate="descriptionOptional">Description (Optional)</label>
+                    <textarea id="project-description" class="form-textarea" data-translate-placeholder="descriptionPlaceholder" placeholder="Brief description of the project..."></textarea>
+                </div>
+
+                <div class="flex gap-10">
+                    <button type="submit" class="btn btn-primary" data-translate="createProject">Create Project</button>
+                    <button type="button" class="btn btn-outline" onclick="hideCreateProjectModal()" data-translate="cancel">Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Projects Grid -->
+        <div id="projects-container">
+            <div class="text-center mt-20">
+                <div class="spinner"></div>
+                <p>Loading projects...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/scripts.js"></script>
+    <script>
+        let currentProjects = [];
+
+        // Check authentication
+        async function checkAuth() {
+            const isAuth = await appFunctions.checkAuth();
+            if (!isAuth) {
+                window.location.href = '/';
+            }
+        }
+
+        checkAuth();
+
+        // Load projects
+        async function loadProjects() {
+            const projects = await appFunctions.getProjects();
+            currentProjects = projects;
+            displayProjects(projects);
+        }
+
+        function displayProjects(projects) {
+            const container = document.getElementById('projects-container');
+            const t = (key) => window.languageManager ? window.languageManager.translate(key) : key;
+
+            if (projects.length === 0) {
+                container.innerHTML = `
+                    <div class="card text-center">
+                        <h3 style="color: var(--text-light);">No projects yet</h3>
+                        <p style="color: var(--text-light); margin: 20px 0;">
+                            Create your first project to start uploading contracts and laws.
+                        </p>
+                        <button class="btn btn-primary" onclick="showCreateProjectModal()">
+                            + ${t('createNewProject')}
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="projects-grid">';
+
+            projects.forEach(project => {
+                html += `
+                    <div class="project-card">
+                        <h3 class="project-title">${escapeHtml(project.name)}</h3>
+                        ${project.description ? `<p style="color: var(--text-light); margin: 10px 0;">${escapeHtml(project.description)}</p>` : ''}
+
+                        <div class="project-meta">
+                            <span>📄 ${project.contract_count} ${t('contracts')}</span>
+                            <span>⚖️ ${project.law_count} ${t('laws')}</span>
+                        </div>
+
+                        <div class="project-actions">
+                            <button class="btn btn-primary" onclick="window.location.href='/query?project=${project.id}'">
+                                ${t('askQuestions')}
+                            </button>
+                            <button class="btn btn-secondary" onclick="window.location.href='/upload/contract?project=${project.id}'">
+                                ${t('uploadContract')}
+                            </button>
+                            <button class="btn btn-secondary" onclick="window.location.href='/upload/law?project=${project.id}'">
+                                ${t('uploadLaw')}
+                            </button>
+                            <button class="btn btn-outline" onclick="viewProject(${project.id})">
+                                ${t('viewDetails')}
+                            </button>
+                            <button class="btn btn-danger" onclick="deleteProjectConfirm(${project.id})">
+                                ${t('deleteProject')}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function showCreateProjectModal() {
+            document.getElementById('create-project-modal').classList.remove('hidden');
+            document.getElementById('project-name').focus();
+        }
+
+        function hideCreateProjectModal() {
+            document.getElementById('create-project-modal').classList.add('hidden');
+            document.getElementById('project-name').value = '';
+            document.getElementById('project-description').value = '';
+        }
+
+        async function handleCreateProject(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('project-name').value;
+            const description = document.getElementById('project-description').value;
+
+            const project = await appFunctions.createProject(name, description);
+
+            if (project) {
+                hideCreateProjectModal();
+                loadProjects();
+            }
+        }
+
+        async function viewProject(projectId) {
+            const project = await appFunctions.getProjectDetails(projectId);
+
+            if (!project) return;
+
+            // Create details modal
+            const modal = document.createElement('div');
+            modal.className = 'card';
+            modal.style.position = 'fixed';
+            modal.style.top = '50%';
+            modal.style.left = '50%';
+            modal.style.transform = 'translate(-50%, -50%)';
+            modal.style.maxWidth = '600px';
+            modal.style.width = '90%';
+            modal.style.maxHeight = '80vh';
+            modal.style.overflowY = 'auto';
+            modal.style.zIndex = '1000';
+            modal.style.backgroundColor = 'white';
+
+            const overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+            overlay.style.zIndex = '999';
+            overlay.onclick = () => {
+                document.body.removeChild(modal);
+                document.body.removeChild(overlay);
+            };
+
+            modal.innerHTML = `
+                <h2 class="card-header">${escapeHtml(project.name)}</h2>
+
+                <h3 style="color: var(--primary-color); margin: 20px 0 10px;">Contracts (${project.contracts.length})</h3>
+                ${project.contracts.length > 0 ? `
+                    <ul style="list-style: none; padding: 0;">
+                        ${project.contracts.map(c => `
+                            <li style="padding: 10px; background: var(--light-bg); margin-bottom: 5px; border-radius: 5px;">
+                                📄 ${escapeHtml(c.filename)} - ${c.pages} pages - Status: ${c.status}
+                            </li>
+                        `).join('')}
+                    </ul>
+                ` : '<p style="color: var(--text-light);">No contracts uploaded yet.</p>'}
+
+                <button class="btn btn-secondary btn-block mb-20" onclick="window.location.href='/upload/contract?project=${project.id}'">
+                    Upload Contract
+                </button>
+
+                <h3 style="color: var(--primary-color); margin: 20px 0 10px;">Laws (${project.laws.length})</h3>
+                ${project.laws.length > 0 ? `
+                    <ul style="list-style: none; padding: 0;">
+                        ${project.laws.map(l => `
+                            <li style="padding: 10px; background: var(--light-bg); margin-bottom: 5px; border-radius: 5px;">
+                                ⚖️ ${escapeHtml(l.filename)} ${l.law_number ? `(${l.law_number})` : ''} - Status: ${l.status}
+                            </li>
+                        `).join('')}
+                    </ul>
+                ` : '<p style="color: var(--text-light);">No laws uploaded yet.</p>'}
+
+                <button class="btn btn-secondary btn-block mb-20" onclick="window.location.href='/upload/law?project=${project.id}'">
+                    Upload Law
+                </button>
+
+                <button class="btn btn-outline btn-block" onclick="this.parentElement.parentElement.remove(); this.parentElement.previousElementSibling.remove();">
+                    Close
+                </button>
+            `;
+
+            document.body.appendChild(overlay);
+            document.body.appendChild(modal);
+        }
+
+        async function deleteProjectConfirm(projectId) {
+            const success = await appFunctions.deleteProject(projectId);
+            if (success) {
+                loadProjects();
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Load projects on page load
+        loadProjects();
+
+        // Reload projects when language changes
+        window.addEventListener('languageChanged', () => {
+            if (currentProjects) {
+                displayProjects(currentProjects);
+            }
+        });
+    </script>
+
+    <div class="footer">
+        <div class="footer-content">
+            <p><strong data-translate="footerTitle">AI Construction Contract & Law Assistant</strong></p>
+            <p><span data-translate="developedBy">Developed by</span> <strong>Andel Albdesk</strong></p>
+            <p data-translate="copyright">&copy; 2026 Andel Albdesk. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

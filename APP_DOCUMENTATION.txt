@@ -1,0 +1,644 @@
+================================================================================
+AI CONSTRUCTION CONTRACT & LAW ASSISTANT
+================================================================================
+
+Developer: Andel Albdesk
+Copyright © 2026 Andel Albdesk. All rights reserved.
+
+================================================================================
+WHAT IS THIS APPLICATION?
+================================================================================
+
+This is a smart assistant application built specifically for construction
+companies in Albania. It helps users understand their construction contracts
+and Albanian construction laws by letting them ask questions in natural
+language (both Albanian and English).
+
+Think of it as having a smart lawyer assistant that has read all your
+contracts and construction laws, and can answer your questions about them
+instantly.
+
+
+================================================================================
+HOW IT WORKS - IN SIMPLE TERMS
+================================================================================
+
+1. YOU UPLOAD YOUR DOCUMENTS
+   - Upload your construction contracts (PDF, Word, Pages formats)
+   - Upload Albanian construction law documents
+   - The system reads these documents and breaks them into small pieces
+
+2. THE SYSTEM PROCESSES DOCUMENTS
+   - The application reads every page of your documents
+   - It breaks the text into small "chunks" (pieces of about 800 words each)
+   - Each chunk gets converted into a special format called an "embedding"
+   - These embeddings are like fingerprints for each piece of text
+   - All embeddings are stored in a database on YOUR computer
+
+3. YOU ASK QUESTIONS
+   - You type a question in Albanian or English
+   - Example: "What are the payment terms in my contract?"
+   - Example: "What does Albanian law say about concrete safety?"
+
+4. THE SYSTEM FINDS RELEVANT INFORMATION
+   - Your question also gets converted into an "embedding"
+   - The system compares your question's fingerprint with all the document
+     fingerprints
+   - It finds the 5 most similar/relevant pieces of text from your documents
+
+5. AI GENERATES AN ANSWER
+   - The relevant pieces are sent to OpenAI's GPT-4 (an artificial
+     intelligence)
+   - GPT-4 reads the relevant pieces and your question
+   - It writes a clear, accurate answer in the same language you asked
+   - The answer includes citations (which document and page it came from)
+
+6. YOU GET YOUR ANSWER
+   - You see the answer with exact citations
+   - You can click to see the exact paragraph from the source document
+   - You can copy the answer or the source text
+   - All your questions and answers are saved in a conversation history
+
+
+================================================================================
+TECHNOLOGY BEHIND THE APPLICATION
+================================================================================
+
+PROGRAMMING LANGUAGES & FRAMEWORKS:
+- Python: The main programming language for the backend
+- Flask: A web framework that handles the web server
+- JavaScript: Makes the web pages interactive
+- HTML/CSS: Creates the visual design and layout
+- SQLite: A simple database that stores all your data
+
+AI & MACHINE LEARNING:
+- OpenAI API: Provides the GPT-4 artificial intelligence
+- text-embedding-3-large: OpenAI's model that converts text to embeddings
+- NumPy: Math library for comparing embeddings
+- FAISS (optional): Facebook's library for faster searches (fallback to NumPy)
+
+DOCUMENT PROCESSING:
+- PyPDF2 & pdfplumber: Read PDF documents
+- python-docx: Read Microsoft Word documents
+- Tesseract OCR: Can read scanned/image PDFs (if installed)
+- langdetect: Automatically detects if text is Albanian or English
+
+SECURITY:
+- Flask-Login: Handles user login sessions securely
+- Werkzeug: Secures passwords with encryption
+- bcrypt/pbkdf2: Password hashing algorithms
+
+DATABASE:
+- SQLAlchemy: Manages the database
+- SQLite: Lightweight database stored as a file on your computer
+
+
+================================================================================
+PRIVACY & DATA SECURITY - VERY IMPORTANT
+================================================================================
+
+WHERE YOUR DATA IS STORED:
+
+1. LOCAL DATABASE (On Your Computer)
+   - User accounts (username, email, encrypted password)
+   - Project information
+   - Document metadata (filenames, upload dates)
+   - Your questions and answers
+   - Citations and source references
+   - Location: "construction_assistant.db" file on your computer
+   - PRIVACY: This data NEVER leaves your computer except for API calls
+
+2. LOCAL FILE STORAGE (On Your Computer)
+   - Original uploaded documents (PDF, Word, Pages files)
+   - Vector embeddings (numeric representations of your documents)
+   - Location: "uploads/" and "vector_db_storage/" folders
+   - PRIVACY: These files stay on YOUR computer only
+
+3. WHAT GETS SENT TO OPENAI:
+
+   When Processing Documents:
+   - The TEXT from your documents is sent to OpenAI to create embeddings
+   - OpenAI converts text to numbers (embeddings) and sends them back
+   - According to OpenAI's policy: Data sent to their API is NOT used for
+     training their models
+   - Your document text is processed and then deleted from their servers
+
+   When Answering Questions:
+   - Your question is sent to OpenAI
+   - The 5 most relevant chunks from your documents are sent
+   - GPT-4 generates an answer and sends it back
+   - OpenAI does NOT store your questions or document chunks for training
+
+
+SECURITY MEASURES:
+
+1. PASSWORD PROTECTION:
+   - Your password is NEVER stored as plain text
+   - It's "hashed" using PBKDF2 encryption
+   - Even the database administrator cannot see your real password
+   - Only you can access your projects and documents
+
+2. USER ISOLATION:
+   - Each user has their own separate projects
+   - You can ONLY see and access YOUR own documents
+   - Other users cannot see your projects even if they use the same computer
+
+3. SESSION SECURITY:
+   - Login sessions expire after 1 hour of inactivity
+   - Sessions use secure tokens
+   - HTTPS should be used in production (requires SSL certificate)
+
+4. FILE UPLOAD SECURITY:
+   - Only specific file types are allowed (PDF, DOCX, DOC, PAGES)
+   - Maximum file size is 50MB
+   - Files are scanned and validated before processing
+
+5. API KEY PROTECTION:
+   - Your OpenAI API key is stored in environment variables
+   - It's not visible in the code or database
+   - It's kept in a separate ".env" file
+
+
+WHAT OPENAI CAN SEE:
+- The text content from your uploaded documents (when creating embeddings)
+- Your questions
+- The relevant chunks sent for answering questions
+- They DO NOT see: your username, password, project names, file names
+
+WHAT OPENAI CANNOT DO:
+- Store your data for training AI models (per their API policy)
+- Access your full documents (only chunks you query about)
+- See who you are or your account information
+- Share your data with third parties
+
+
+DATA RETENTION:
+- All your data stays on your computer indefinitely until you delete it
+- You can delete individual questions/answers
+- You can delete entire conversations
+- You can delete entire projects (this deletes all related documents and data)
+- When you delete, data is PERMANENTLY removed from the database
+
+
+================================================================================
+HOW DATA FLOWS THROUGH THE SYSTEM
+================================================================================
+
+DOCUMENT UPLOAD FLOW:
+1. You select a PDF/Word document on your computer
+2. File is uploaded to the "uploads/" folder on your computer
+3. Python reads the document and extracts all text
+4. Text is split into chunks (800 words each, 100 word overlap)
+5. Each chunk is sent to OpenAI API to create an embedding
+6. Embeddings (just numbers) are saved to "vector_db_storage/" on your computer
+7. Original file metadata is saved to SQLite database
+8. (Optional) Original file can be auto-deleted to save space
+
+QUESTION & ANSWER FLOW:
+1. You type a question in the web interface
+2. Question is sent to the Flask backend server
+3. Question is converted to an embedding using OpenAI API
+4. Your computer searches the local vector database for similar embeddings
+5. Top 5 most relevant chunks are retrieved from local storage
+6. Question + relevant chunks are sent to OpenAI GPT-4
+7. GPT-4 generates an answer with citations
+8. Answer is saved to your local database
+9. Answer is displayed to you with source citations
+
+
+================================================================================
+DATABASE STRUCTURE
+================================================================================
+
+The SQLite database contains these tables:
+
+USERS TABLE:
+- id: Unique number for each user
+- username: Your username (unique)
+- email: Your email address (unique)
+- password_hash: Your encrypted password
+- created_at: When you created your account
+
+PROJECTS TABLE:
+- id: Unique number for each project
+- name: Project name (like "Tirana Construction Project")
+- description: Optional description
+- user_id: Links to the user who owns it
+- contract_index_path: Where contract embeddings are stored
+- law_index_path: Where law embeddings are stored
+- created_at: When project was created
+- updated_at: When project was last modified
+
+CONTRACTS TABLE:
+- id: Unique number for each contract
+- project_id: Which project it belongs to
+- filename: Stored filename
+- original_filename: Original filename you uploaded
+- file_size: Size in bytes
+- pages: Number of pages
+- uploaded_at: When you uploaded it
+- processed: Whether it's been converted to embeddings
+- processing_status: pending/processing/completed/failed
+
+LAWS TABLE:
+- Same structure as contracts
+- Plus: law_number, law_title, year, update_version
+
+CONVERSATIONS TABLE:
+- id: Unique number for each conversation
+- project_id: Which project it belongs to
+- user_id: Who started it
+- title: Auto-generated from first question
+- created_at: When conversation started
+- updated_at: Last message time
+
+QUERIES TABLE (messages in conversations):
+- id: Unique number for each message
+- conversation_id: Which conversation it belongs to
+- project_id: Which project
+- user_id: Who asked
+- question: Your question text
+- answer: AI's answer text
+- language: 'sq' (Albanian) or 'en' (English)
+- contract_citations: JSON with source references from contracts
+- law_citations: JSON with source references from laws
+- response_time: How long it took to answer (in seconds)
+- created_at: When you asked the question
+
+
+================================================================================
+SYSTEM REQUIREMENTS
+================================================================================
+
+REQUIRED:
+- Python 3.8 or higher
+- Internet connection (for OpenAI API calls)
+- OpenAI API key (costs money based on usage)
+- At least 2GB of free disk space
+- Modern web browser (Chrome, Firefox, Safari, Edge)
+
+OPTIONAL:
+- Tesseract OCR (for scanned/image PDFs)
+- FAISS library (for faster searches with large document sets)
+
+OPERATING SYSTEM:
+- Works on Windows, macOS, and Linux
+
+
+================================================================================
+COSTS & API USAGE
+================================================================================
+
+OPENAI API COSTS (as of 2025):
+- Embeddings (text-embedding-3-large): ~$0.13 per 1 million tokens
+  * A typical 10-page contract might cost $0.01-0.05 to process
+- GPT-4 Turbo: ~$10 per 1 million input tokens, ~$30 per 1 million output tokens
+  * A typical question might cost $0.01-0.05 to answer
+
+EXAMPLE USAGE COSTS:
+- Processing 100 pages of contracts: ~$0.50 - $2.00
+- Asking 100 questions: ~$1.00 - $5.00
+- Monthly cost for moderate use: $10 - $50
+
+NOTE: You only pay for what you use. The application itself is free.
+
+
+================================================================================
+FEATURES OVERVIEW
+================================================================================
+
+USER MANAGEMENT:
+✓ Create account with username, email, password
+✓ Secure login with session management
+✓ Password encryption
+✓ Automatic logout after 1 hour
+
+PROJECT MANAGEMENT:
+✓ Create multiple projects
+✓ Each project is separate (different contracts/laws)
+✓ Delete projects (removes all associated data)
+✓ View project statistics (number of contracts, laws, queries)
+
+DOCUMENT UPLOAD:
+✓ Upload construction contracts
+✓ Upload Albanian law documents
+✓ Support for PDF, Word (DOCX/DOC), Apple Pages
+✓ Automatic text extraction
+✓ Progress tracking during processing
+✓ Error handling if processing fails
+
+SMART SEARCH & RAG (Retrieval Augmented Generation):
+✓ Ask questions in Albanian or English
+✓ Automatic language detection
+✓ Finds relevant information from your documents
+✓ Answers with exact citations (document name, page, clause/article)
+✓ Can also answer general construction questions
+✓ Maintains conversation context (remembers previous questions)
+
+CONVERSATIONS:
+✓ Group related questions together
+✓ Continue previous conversations
+✓ Auto-generated conversation titles
+✓ View conversation history
+✓ Delete conversations
+
+SOURCE TEXT VIEWING:
+✓ Click to view exact paragraph from source document
+✓ Copy source text with one click
+✓ See relevance score for each citation
+
+MULTI-LANGUAGE:
+✓ User interface in English
+✓ Can process Albanian and English documents
+✓ Answers in the same language as your question
+
+
+================================================================================
+LIMITATIONS
+================================================================================
+
+1. REQUIRES INTERNET:
+   - Must have internet connection for OpenAI API
+   - Cannot work offline
+
+2. COSTS MONEY:
+   - Requires OpenAI API key (paid service)
+   - Costs increase with usage
+
+3. OCR QUALITY:
+   - Scanned/image PDFs require Tesseract installation
+   - OCR accuracy depends on image quality
+   - Handwritten documents cannot be read
+
+4. DOCUMENT SIZE:
+   - Maximum 50MB per file
+   - Very large documents take longer to process
+
+5. AI LIMITATIONS:
+   - GPT-4 might make mistakes (always verify important information)
+   - Cannot understand images, diagrams, or tables very well
+   - Limited to the documents you upload (doesn't know about documents you
+     haven't uploaded)
+
+6. LANGUAGE SUPPORT:
+   - Optimized for Albanian and English only
+   - Other languages may work but are not tested
+
+
+================================================================================
+PRIVACY BEST PRACTICES
+================================================================================
+
+FOR MAXIMUM PRIVACY:
+
+1. SELF-HOST THE APPLICATION:
+   - Run it on your own computer or private server
+   - Don't use shared hosting where others have access
+
+2. USE HTTPS IN PRODUCTION:
+   - Install SSL certificate
+   - Encrypt all web traffic
+
+3. BACKUP YOUR DATA:
+   - Regularly backup the SQLite database file
+   - Backup the uploads and vector_db_storage folders
+
+4. UNDERSTAND OPENAI'S POLICY:
+   - Read OpenAI's data usage policy
+   - Be aware that text is sent to their API
+   - For highly sensitive documents, consider using a local AI model instead
+
+5. SECURE YOUR API KEY:
+   - Never share your OpenAI API key
+   - Use environment variables, never hardcode it
+   - Rotate your key periodically
+
+6. USE STRONG PASSWORDS:
+   - Use unique, complex passwords for your account
+   - Don't reuse passwords from other services
+
+7. LIMIT USER ACCESS:
+   - Only create accounts for trusted users
+   - Regularly review user accounts
+
+
+================================================================================
+HOW TO USE THE APPLICATION - STEP BY STEP
+================================================================================
+
+GETTING STARTED:
+
+1. Create an Account:
+   - Go to the homepage
+   - Click "Register here"
+   - Enter username, email, password
+   - Click "Register"
+
+2. Create a Project:
+   - After login, you'll see the Dashboard
+   - Click "+ Create New Project"
+   - Enter project name (e.g., "Tirana Building Project")
+   - Add description (optional)
+   - Click "Create Project"
+
+3. Upload Contracts:
+   - Click on your project
+   - Click "Upload Contract"
+   - Select your contract PDF/Word file
+   - Wait for processing to complete
+   - Repeat for all contracts
+
+4. Upload Laws:
+   - Click "Upload Law"
+   - Select Albanian law document
+   - Optional: Fill in law number, title, year
+   - Wait for processing
+   - Repeat for all relevant laws
+
+5. Ask Questions:
+   - Click "Ask Questions"
+   - Select a conversation or start new
+   - Type your question in Albanian or English
+   - Click "Ask Question"
+   - View answer with citations
+   - Click "📖 Show Text" to see source paragraphs
+
+6. Manage Conversations:
+   - Continue previous conversations from the dropdown
+   - Start new conversations for different topics
+   - Click conversation history to review old answers
+   - Delete conversations you don't need
+
+
+================================================================================
+TECHNICAL ARCHITECTURE
+================================================================================
+
+FRONTEND (What you see):
+- HTML pages with forms and display areas
+- CSS styling for professional appearance
+- JavaScript for interactivity and API calls
+- Runs in your web browser
+
+BACKEND (Server):
+- Flask web server handles requests
+- Python processes documents and searches
+- Routes (endpoints) for different functions:
+  * /api/auth/register - Create account
+  * /api/auth/login - Log in
+  * /api/projects - Manage projects
+  * /api/upload/contract - Upload contracts
+  * /api/upload/law - Upload laws
+  * /api/query - Ask questions
+  * /api/conversations - Manage conversations
+
+DOCUMENT PROCESSING PIPELINE:
+1. File Upload Handler
+2. Text Extractor (PDF/Word reader)
+3. Text Chunker (splits into 800-word pieces)
+4. Embedding Generator (calls OpenAI API)
+5. Vector Database (stores embeddings locally)
+
+QUERY PROCESSING PIPELINE:
+1. Question Receiver
+2. Language Detector
+3. Embedding Generator (convert question to embedding)
+4. Vector Search (find similar chunks in database)
+5. Context Builder (prepare chunks for GPT-4)
+6. LLM Query (send to GPT-4)
+7. Response Formatter (format answer with citations)
+8. Database Saver (save Q&A to database)
+
+
+================================================================================
+FILE STRUCTURE
+================================================================================
+
+ai_construction_assistant/
+│
+├── backend/
+│   ├── app.py                    # Main Flask application
+│   ├── config.py                 # Configuration settings
+│   │
+│   ├── db/
+│   │   └── database.py           # Database models
+│   │
+│   ├── routes/
+│   │   ├── auth.py               # Login/register endpoints
+│   │   ├── projects.py           # Project management
+│   │   ├── upload_contract.py   # Contract upload
+│   │   ├── upload_law.py         # Law upload
+│   │   ├── query.py              # Question answering
+│   │   └── conversations.py      # Conversation management
+│   │
+│   ├── processing/
+│   │   ├── document_processor.py # Extract text from documents
+│   │   ├── text_chunker.py       # Split text into chunks
+│   │   └── embeddings.py         # Generate embeddings
+│   │
+│   └── vector_db/
+│       ├── faiss_handler.py      # FAISS vector database (optional)
+│       └── numpy_handler.py      # NumPy vector database (fallback)
+│
+├── frontend/
+│   ├── index.html                # Login/register page
+│   ├── dashboard.html            # Projects dashboard
+│   ├── upload_contract.html      # Contract upload page
+│   ├── upload_law.html           # Law upload page
+│   ├── query.html                # Question interface
+│   │
+│   └── static/
+│       ├── css/
+│       │   └── styles.css        # All styling
+│       └── js/
+│           └── app.js            # Shared JavaScript functions
+│
+├── uploads/                      # Uploaded documents stored here
+├── vector_db_storage/            # Vector embeddings stored here
+├── logs/                         # Application logs
+│
+├── construction_assistant.db     # SQLite database file
+├── .env                          # Environment variables (API keys)
+├── requirements.txt              # Python dependencies
+└── README.md                     # Setup instructions
+
+
+================================================================================
+SUPPORT & TROUBLESHOOTING
+================================================================================
+
+COMMON ISSUES:
+
+1. "OPENAI_API_KEY not found"
+   - Create a .env file in the root directory
+   - Add: OPENAI_API_KEY=your-api-key-here
+
+2. "Database locked" error
+   - Close all instances of the application
+   - Restart the server
+
+3. Documents not processing
+   - Check file format (must be PDF, DOCX, DOC, or PAGES)
+   - Check file size (must be under 50MB)
+   - Check logs/app.log for error details
+
+4. Can't login
+   - Clear browser cookies
+   - Try different browser
+   - Check if username/password is correct
+
+5. Slow responses
+   - Normal for first question (loading embeddings)
+   - Check internet connection speed
+   - OpenAI API might be slow during peak times
+
+
+================================================================================
+DEVELOPER INFORMATION
+================================================================================
+
+Developer: Andel Albdesk
+Copyright: © 2025 Andel Albdesk. All rights reserved.
+
+This application was specifically designed for Albanian construction companies
+to help them better understand their contracts and comply with Albanian
+construction laws.
+
+The system prioritizes privacy by storing all data locally and only sending
+necessary information to OpenAI's API for processing.
+
+
+================================================================================
+LICENSE & USAGE TERMS
+================================================================================
+
+This application is proprietary software developed by Andel Albdesk.
+
+All rights reserved. Unauthorized copying, modification, distribution, or use
+of this software is strictly prohibited without explicit written permission
+from the developer.
+
+
+================================================================================
+FUTURE ENHANCEMENTS (Potential Features)
+================================================================================
+
+- Support for more document formats (Excel, images, etc.)
+- Offline AI models (no internet required)
+- Multi-user collaboration on projects
+- Document comparison tools
+- Custom templates for different contract types
+- Mobile app version
+- Voice input for questions
+- Automatic contract analysis and risk detection
+- Integration with construction management software
+- Multi-language UI (Albanian, English, etc.)
+
+
+================================================================================
+END OF DOCUMENTATION
+================================================================================
+
+For technical support or questions, please contact the developer.
+
+Last Updated: January 2025

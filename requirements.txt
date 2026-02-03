@@ -1,0 +1,33 @@
+# Web Framework
+Flask==3.0.0
+Flask-CORS==4.0.0
+Flask-Login==0.6.3
+gunicorn==21.2.0
+
+# Database
+Flask-SQLAlchemy==3.1.1
+
+# Document Processing
+pdfplumber==0.10.3
+pytesseract==0.3.10
+Pillow==10.1.0
+pdf2image==1.16.3
+python-docx>=1.0.0  # Word document support
+lxml>=4.9.0  # XML parsing for Pages documents
+
+# Vector DB & Embeddings
+faiss-cpu==1.7.4
+openai==1.6.1
+
+# Language Detection
+langdetect==1.0.9
+
+# Security
+cryptography==41.0.7
+werkzeug==3.0.1
+
+# Utilities
+python-dotenv==1.0.0
+requests==2.31.0
+
+# File handling (python-magic removed — requires system libmagic, not used)

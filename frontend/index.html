@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Construction Assistant - Login</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="/static/js/translations.js" defer></script>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo" data-translate="appTitle">
+                🏗️ AI Construction Assistant
+            </div>
+        </div>
+    </div>
+
+    <div class="container-narrow">
+        <div class="card mt-20">
+            <div id="login-form">
+                <h2 class="card-header" data-translate="loginHeader">Login</h2>
+
+                <form id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="login-username" data-translate="username">Username</label>
+                        <input type="text" id="login-username" class="form-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="login-password" data-translate="password">Password</label>
+                        <input type="password" id="login-password" class="form-input" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block" data-translate="loginButton">Login</button>
+                </form>
+
+                <p class="text-center mt-20">
+                    <span data-translate="noAccount">Don't have an account?</span>
+                    <a href="#" onclick="showRegisterForm(); return false;" style="color: var(--primary-color);">
+                        <span data-translate="registerHere">Register here</span>
+                    </a>
+                </p>
+            </div>
+
+            <div id="register-form" class="hidden">
+                <h2 class="card-header" data-translate="register">Register</h2>
+
+                <form id="registerForm" onsubmit="handleRegister(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="register-username" data-translate="username">Username</label>
+                        <input type="text" id="register-username" class="form-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="register-email" data-translate="email">Email</label>
+                        <input type="email" id="register-email" class="form-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="register-password" data-translate="password">Password</label>
+                        <input type="password" id="register-password" class="form-input" minlength="6" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="register-password-confirm" data-translate="confirmPassword">Confirm Password</label>
+                        <input type="password" id="register-password-confirm" class="form-input" minlength="6" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block" data-translate="registerButton">Register</button>
+                </form>
+
+                <p class="text-center mt-20">
+                    <span data-translate="haveAccount">Already have an account?</span>
+                    <a href="#" onclick="showLoginForm(); return false;" style="color: var(--primary-color);">
+                        <span data-translate="loginHere">Login here</span>
+                    </a>
+                </p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="color: var(--primary-color); margin-bottom: 15px;">About This Tool</h3>
+            <p style="line-height: 1.8; color: var(--text-light);">
+                AI Construction Assistant helps Albanian construction companies manage contracts and laws.
+                Upload your construction contracts and relevant Albanian construction laws, then ask questions
+                in Albanian or English to get precise, citation-backed answers.
+            </p>
+            <ul style="margin-top: 15px; line-height: 2; color: var(--text-light);">
+                <li>✓ Upload contracts & Albanian construction laws (PDFs)</li>
+                <li>✓ Ask questions in Albanian or English</li>
+                <li>✓ Get answers with contract page + clause citations</li>
+                <li>✓ Mobile-friendly query interface</li>
+                <li>✓ Privacy-first (PDFs auto-deleted after processing)</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="/static/js/scripts.js"></script>
+    <script>
+        // Check if already logged in
+        async function checkAuthStatus() {
+            const isAuth = await appFunctions.checkAuth();
+            if (isAuth) {
+                window.location.href = '/dashboard';
+            }
+        }
+
+        checkAuthStatus();
+
+        function showLoginForm() {
+            document.getElementById('login-form').classList.remove('hidden');
+            document.getElementById('register-form').classList.add('hidden');
+        }
+
+        function showRegisterForm() {
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('register-form').classList.remove('hidden');
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+
+            await appFunctions.login(username, password);
+        }
+
+        async function handleRegister(event) {
+            event.preventDefault();
+
+            const username = document.getElementById('register-username').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const confirmPassword = document.getElementById('register-password-confirm').value;
+
+            if (password !== confirmPassword) {
+                appFunctions.showAlert('Passwords do not match', 'error');
+                return;
+            }
+
+            await appFunctions.register(username, email, password);
+        }
+    </script>
+
+    <div class="footer">
+        <div class="footer-content">
+            <p><strong data-translate="footerTitle">AI Construction Contract & Law Assistant</strong></p>
+            <p><span data-translate="developedBy">Developed by</span> <strong>Andel Albdesk</strong></p>
+            <p data-translate="copyright">&copy; 2026 Andel Albdesk. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
