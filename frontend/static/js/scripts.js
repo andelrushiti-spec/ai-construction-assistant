@@ -1,6 +1,6 @@
 // Construction Legal Assistant - Frontend JavaScript
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = '/api';
 
 // Utility Functions
 function showAlert(message, type = 'info') {

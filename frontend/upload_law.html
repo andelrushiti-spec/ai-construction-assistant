@@ -235,7 +235,7 @@
         async function updateStatus() {
             if (!currentLawId) return;
 
-            const response = await fetch(`http://localhost:5000/api/upload/law/${currentLawId}/status`, {
+            const response = await fetch(`/api/upload/law/${currentLawId}/status`, {
                 credentials: 'include'
             });
 

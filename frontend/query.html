@@ -173,7 +173,7 @@
 
             try {
                 // Send question with conversation_id
-                const response = await fetch(`http://localhost:5000/api/query/${projectId}`, {
+                const response = await fetch(`/api/query/${projectId}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -198,7 +198,7 @@
                 document.getElementById('question-input').value = '';
 
                 // Fetch and display the conversation directly
-                const convResponse = await fetch(`http://localhost:5000/api/conversations/${currentConversationId}`, {
+                const convResponse = await fetch(`/api/conversations/${currentConversationId}`, {
                     credentials: 'include'
                 });
 
@@ -225,7 +225,7 @@
         async function loadConversations() {
             const t = (key) => window.languageManager ? window.languageManager.translate(key) : key;
             try {
-                const response = await fetch(`http://localhost:5000/api/conversations/project/${projectId}`, {
+                const response = await fetch(`/api/conversations/project/${projectId}`, {
                     credentials: 'include'
                 });
 
@@ -273,7 +273,7 @@
             currentConversationId = parseInt(selectValue);
 
             try {
-                const response = await fetch(`http://localhost:5000/api/conversations/${currentConversationId}`, {
+                const response = await fetch(`/api/conversations/${currentConversationId}`, {
                     credentials: 'include'
                 });
 
@@ -430,7 +430,7 @@
             const t = (key) => window.languageManager ? window.languageManager.translate(key) : key;
             try {
                 // Get list of conversations instead of individual queries
-                const response = await fetch(`http://localhost:5000/api/conversations/project/${projectId}`, {
+                const response = await fetch(`/api/conversations/project/${projectId}`, {
                     credentials: 'include'
                 });
 
