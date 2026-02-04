@@ -1,5 +1,5 @@
 """
-AI Construction Contract & Law Assistant
+Construction Legal Assistant
 Conversation Routes - Manage Conversations
 
 Developer: Andel Albdesk

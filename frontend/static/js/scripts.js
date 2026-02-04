@@ -1,4 +1,4 @@
-// AI Construction Assistant - Frontend JavaScript
+// Construction Legal Assistant - Frontend JavaScript
 
 const API_BASE = 'http://localhost:5000/api';
 

@@ -1,8 +1,8 @@
-# Quick Start Guide - AI Construction Assistant
+# Quick Start Guide - Construction Legal Assistant
 
 ## ✅ Setup Complete!
 
-Your AI Construction Assistant is now **running** and ready to test!
+Your Construction Legal Assistant is now **running** and ready to test!
 
 ## 🌐 Access the Application
 

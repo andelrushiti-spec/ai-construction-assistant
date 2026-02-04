@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: ai-construction-assistant
+    name: construction-legal-assistant
     env: python
     plan: free
     buildCommand: pip install -r requirements.txt

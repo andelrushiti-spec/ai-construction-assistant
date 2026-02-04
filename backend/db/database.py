@@ -1,5 +1,5 @@
 """
-AI Construction Contract & Law Assistant
+Construction Legal Assistant
 Database Models
 
 Developer: Andel Albdesk

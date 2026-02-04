@@ -2,7 +2,7 @@
 
 ## What's New?
 
-Your AI Construction Assistant now supports **multiple document formats** beyond just PDF!
+Your Construction Legal Assistant now supports **multiple document formats** beyond just PDF!
 
 ### ✅ **Newly Supported Formats**
 

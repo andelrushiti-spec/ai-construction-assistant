@@ -1,4 +1,4 @@
-# AI Construction Contract & Law Assistant
+# Construction Legal Assistant
 
 A privacy-first AI assistant designed for Albanian construction companies to manage contracts and construction laws with intelligent question-answering capabilities.
 
@@ -220,7 +220,7 @@ Here are some Albanian construction laws you might want to upload:
    ```
 
 4. **Setup Nginx as Reverse Proxy**
-   Create `/etc/nginx/sites-available/construction-assistant`:
+   Create `/etc/nginx/sites-available/construction-legal-assistant`:
    ```nginx
    server {
        listen 80;
@@ -259,8 +259,8 @@ CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "backend.app:app"]
 
 Build and run:
 ```bash
-docker build -t construction-assistant .
-docker run -p 5000:5000 -e OPENAI_API_KEY=your_key construction-assistant
+docker build -t construction-legal-assistant .
+docker run -p 5000:5000 -e OPENAI_API_KEY=your_key construction-legal-assistant
 ```
 
 ## Security Considerations

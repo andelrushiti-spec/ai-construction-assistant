@@ -1,5 +1,5 @@
 """
-AI Construction Contract & Law Assistant
+Construction Legal Assistant
 Main Flask Application
 
 Developer: Andel Albdesk
@@ -113,7 +113,7 @@ def create_app():
     # Health check endpoint
     @app.route('/api/health')
     def health_check():
-        return {'status': 'healthy', 'message': 'AI Construction Assistant API is running'}, 200
+        return {'status': 'healthy', 'message': 'Construction Legal Assistant API is running'}, 200
 
     # Error handlers
     @app.errorhandler(404)
@@ -139,7 +139,7 @@ if __name__ == '__main__':
 
     port = int(os.environ.get('PORT', 5000))
 
-    logger.info("Starting AI Construction Contract & Law Assistant")
+    logger.info("Starting Construction Legal Assistant")
     logger.info("=" * 60)
     logger.info(f"Server running on http://0.0.0.0:{port}")
     logger.info("=" * 60)

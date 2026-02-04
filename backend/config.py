@@ -1,5 +1,5 @@
 """
-AI Construction Contract & Law Assistant
+Construction Legal Assistant
 Configuration Settings
 
 Developer: Andel Albdesk
@@ -25,13 +25,13 @@ LOGS_DIR.mkdir(exist_ok=True)
 VECTOR_DB_DIR.mkdir(exist_ok=True)
 
 # Flask Configuration
-SECRET_KEY = os.getenv("SECRET_KEY", "construction-assistant-secret-key-change-in-production")
+SECRET_KEY = os.getenv("SECRET_KEY", "construction-legal-assistant-secret-key-change-in-production")
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
 # Database Configuration
 SQLALCHEMY_DATABASE_URI = os.getenv(
     "DATABASE_URL",
-    f"sqlite:///{BASE_DIR / 'construction_assistant.db'}"
+    f"sqlite:///{BASE_DIR / 'construction_legal_assistant.db'}"
 )
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 

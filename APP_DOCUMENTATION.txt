@@ -1,5 +1,5 @@
 ================================================================================
-AI CONSTRUCTION CONTRACT & LAW ASSISTANT
+CONSTRUCTION LEGAL ASSISTANT
 ================================================================================
 
 Developer: Andel Albdesk
@@ -105,7 +105,7 @@ WHERE YOUR DATA IS STORED:
    - Document metadata (filenames, upload dates)
    - Your questions and answers
    - Citations and source references
-   - Location: "construction_assistant.db" file on your computer
+   - Location: "construction_legal_assistant.db" file on your computer
    - PRIVACY: This data NEVER leaves your computer except for API calls
 
 2. LOCAL FILE STORAGE (On Your Computer)
@@ -557,7 +557,7 @@ ai_construction_assistant/
 ├── vector_db_storage/            # Vector embeddings stored here
 ├── logs/                         # Application logs
 │
-├── construction_assistant.db     # SQLite database file
+├── construction_legal_assistant.db     # SQLite database file
 ├── .env                          # Environment variables (API keys)
 ├── requirements.txt              # Python dependencies
 └── README.md                     # Setup instructions

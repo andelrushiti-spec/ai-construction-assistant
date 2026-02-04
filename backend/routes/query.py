@@ -1,5 +1,5 @@
 """
-AI Construction Contract & Law Assistant
+Construction Legal Assistant
 Query Routes - Question Answering with RAG
 
 Developer: Andel Albdesk

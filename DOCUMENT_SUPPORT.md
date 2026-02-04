@@ -2,7 +2,7 @@
 
 ## Supported Formats
 
-The AI Construction Assistant now supports multiple document formats for contracts and laws:
+The Construction Legal Assistant now supports multiple document formats for contracts and laws:
 
 ### ✅ **PDF Documents** (.pdf)
 - **Digital PDFs**: Best performance, instant text extraction

@@ -1,5 +1,5 @@
 """
-AI Construction Contract & Law Assistant
+Construction Legal Assistant
 Authentication Routes - User Login/Register
 
 Developer: Andel Albdesk

@@ -1,5 +1,5 @@
 """
-AI Construction Contract & Law Assistant
+Construction Legal Assistant
 Embedding Generator - Create Text Embeddings using OpenAI
 
 Developer: Andel Albdesk

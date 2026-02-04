@@ -1,5 +1,5 @@
 /**
- * AI Construction Assistant - Translation System
+ * Construction Legal Assistant - Translation System
  * Developer: Andel Albdesk
  * Copyright (c) 2026 Andel Albdesk. All rights reserved.
  */
@@ -7,7 +7,7 @@
 const translations = {
     en: {
         // Header & Navigation
-        appTitle: "🏗️ AI Construction Assistant",
+        appTitle: "⚖️ Construction Legal Assistant",
         dashboard: "Dashboard",
         logout: "Logout",
         login: "Login",
@@ -111,7 +111,7 @@ const translations = {
         loadingProject: "Loading project...",
 
         // Footer
-        footerTitle: "AI Construction Contract & Law Assistant",
+        footerTitle: "Construction Legal Assistant",
         developedBy: "Developed by",
         copyright: "© 2026 Andel Albdesk. All rights reserved.",
 
@@ -149,7 +149,7 @@ const translations = {
 
     sq: {
         // Header & Navigation
-        appTitle: "🏗️ Asistenti AI për Ndërtim",
+        appTitle: "⚖️ Asistenti Juridik Ndërtimi",
         dashboard: "Paneli",
         logout: "Dil",
         login: "Hyr",
@@ -253,7 +253,7 @@ const translations = {
         loadingProject: "Duke ngarkuar projektin...",
 
         // Footer
-        footerTitle: "Asistenti AI për Kontrata & Ligje Ndërtimi",
+        footerTitle: "Asistenti Juridik Ndërtimi",
         developedBy: "Zhvilluar nga",
         copyright: "© 2026 Andel Albdesk. Të gjitha të drejtat e rezervuara.",
 
