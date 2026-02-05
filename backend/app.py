@@ -22,13 +22,15 @@ from backend.routes.conversations import conversations_bp
 import logging
 import os
 from pathlib import Path
+from datetime import timedelta
 
 # Absolute paths resolved from this file's location
 BASE_DIR = Path(__file__).resolve().parent.parent          # project root
 FRONTEND_DIR = BASE_DIR / 'frontend'
-LOGS_DIR = BASE_DIR / 'logs'
-UPLOADS_DIR = BASE_DIR / 'uploads'
-VECTOR_DB_DIR = BASE_DIR / 'vector_db_storage'
+
+# All mutable storage (DB, uploads, vector indexes, logs) lives on the
+# persistent volume.  config.py derives these from PERSISTENT_VOLUME_PATH.
+from backend.config import UPLOADS_DIR, LOGS_DIR, VECTOR_DB_DIR   # noqa: E402
 
 # Ensure directories exist before anything else runs (gunicorn doesn't hit __main__)
 LOGS_DIR.mkdir(exist_ok=True)
@@ -60,6 +62,13 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = config.SQLALCHEMY_DATABASE_URI
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = config.SQLALCHEMY_TRACK_MODIFICATIONS
     app.config['MAX_CONTENT_LENGTH'] = config.MAX_FILE_SIZE_MB * 1024 * 1024  # Max file size
+
+    # Session / cookie hardening
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(seconds=config.PERMANENT_SESSION_LIFETIME)
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    # Secure flag: on in production (Render is HTTPS), off in local dev
+    app.config['SESSION_COOKIE_SECURE'] = not config.DEBUG
 
     # Enable CORS
     CORS(app, supports_credentials=True)

@@ -20,6 +20,7 @@ import openai
 import logging
 import time
 import json
+import gc
 
 logger = logging.getLogger(__name__)
 
@@ -158,23 +159,31 @@ def ask_question(project_id):
         # Generate query embedding
         query_embedding = embedder.embed_query(question)
 
-        # Retrieve relevant contract chunks
+        # Retrieve relevant contract chunks, then free the index immediately
         contract_chunks = []
-        contract_index_file = Path(project.contract_index_path + '.npy') if project.contract_index_path else None
-        if contract_index_file and (contract_index_file.exists() or Path(project.contract_index_path + '.faiss').exists()):
-            contract_db = ContractVectorDB(dimension=embedder.get_embedding_dimension())
-            contract_db.load_index(project.contract_index_path)
-            contract_chunks = contract_db.search_contracts(query_embedding, top_k=TOP_K_RESULTS)
-            logger.info(f"Retrieved {len(contract_chunks)} contract chunks")
+        if project.contract_index_path:
+            contract_index_file = Path(project.contract_index_path + '.npy')
+            if contract_index_file.exists() or Path(project.contract_index_path + '.faiss').exists():
+                contract_db = ContractVectorDB(dimension=embedder.get_embedding_dimension())
+                contract_db.load_index(project.contract_index_path)
+                contract_chunks = contract_db.search_contracts(query_embedding, top_k=TOP_K_RESULTS)
+                logger.info(f"Retrieved {len(contract_chunks)} contract chunks")
+                del contract_db  # release FAISS index + numpy arrays
 
-        # Retrieve relevant law chunks
+        # Retrieve relevant law chunks, then free the index immediately
         law_chunks = []
-        law_index_file = Path(project.law_index_path + '.npy') if project.law_index_path else None
-        if law_index_file and (law_index_file.exists() or Path(project.law_index_path + '.faiss').exists()):
-            law_db = LawVectorDB(dimension=embedder.get_embedding_dimension())
-            law_db.load_index(project.law_index_path)
-            law_chunks = law_db.search_laws(query_embedding, top_k=TOP_K_RESULTS)
-            logger.info(f"Retrieved {len(law_chunks)} law chunks")
+        if project.law_index_path:
+            law_index_file = Path(project.law_index_path + '.npy')
+            if law_index_file.exists() or Path(project.law_index_path + '.faiss').exists():
+                law_db = LawVectorDB(dimension=embedder.get_embedding_dimension())
+                law_db.load_index(project.law_index_path)
+                law_chunks = law_db.search_laws(query_embedding, top_k=TOP_K_RESULTS)
+                logger.info(f"Retrieved {len(law_chunks)} law chunks")
+                del law_db  # release FAISS index + numpy arrays
+
+        # Free the embedder and run GC to reclaim the index memory promptly
+        del embedder
+        gc.collect()
 
         # Format context for LLM (even if empty, we'll let GPT-4 answer from general knowledge)
         context = format_context_for_llm(contract_chunks, law_chunks)

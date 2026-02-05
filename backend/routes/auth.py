@@ -82,8 +82,9 @@ def login():
         if not user or not user.check_password(password):
             return jsonify({'error': 'Invalid username or password'}), 401
 
-        # Log user in
+        # Log user in and mark session permanent so PERMANENT_SESSION_LIFETIME applies
         login_user(user, remember=True)
+        session.permanent = True
 
         logger.info(f"User logged in: {username}")
 

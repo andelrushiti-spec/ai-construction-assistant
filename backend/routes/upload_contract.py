@@ -12,6 +12,7 @@ except ImportError:
 from pathlib import Path
 import logging
 import os
+import gc
 from threading import Thread
 
 logger = logging.getLogger(__name__)
@@ -28,6 +29,14 @@ def allowed_file(filename):
 def process_contract_async(contract_id, file_path, project_id, app):
     """Process contract in background thread"""
     from backend.config import OPENAI_API_KEY, TESSERACT_CMD, CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDING_MODEL, AUTO_DELETE_UPLOADS
+
+    # Track large objects so the finally block can free them regardless of
+    # where an exception occurs.
+    extractor = None
+    embedder = None
+    contract_db = None
+    pages = None
+    chunks = None
 
     # Use Flask application context
     with app.app_context():
@@ -47,6 +56,7 @@ def process_contract_async(contract_id, file_path, project_id, app):
 
             # Get metadata
             metadata = extractor.extract_contract_metadata(pages)
+            del extractor; extractor = None  # noqa: E702 — free extractor early
 
             # Update contract with extracted info
             contract.pages = len(pages)
@@ -60,6 +70,7 @@ def process_contract_async(contract_id, file_path, project_id, app):
                 doc_type='contract',
                 doc_name=contract.original_filename
             )
+            del pages; pages = None  # noqa: E702 — raw page text no longer needed
 
             logger.info(f"Created {len(chunks)} chunks from contract {contract_id}")
 
@@ -69,6 +80,7 @@ def process_contract_async(contract_id, file_path, project_id, app):
 
             # 4. Add to vector database
             contract_db = ContractVectorDB(dimension=embedder.get_embedding_dimension())
+            del embedder; embedder = None  # noqa: E702
 
             # Load existing index if it exists (check both .faiss and .npy)
             index_exists = False
@@ -110,6 +122,12 @@ def process_contract_async(contract_id, file_path, project_id, app):
             contract.processing_status = 'failed'
             contract.error_message = str(e)
             db.session.commit()
+
+        finally:
+            # Explicitly free all large in-memory objects so the thread does
+            # not hold onto FAISS indexes / numpy arrays / extracted text.
+            del extractor, embedder, contract_db, pages, chunks
+            gc.collect()
 
 
 @upload_contract_bp.route('/<int:project_id>', methods=['POST'])

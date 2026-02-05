@@ -15,23 +15,31 @@ load_dotenv()
 
 # Base directories
 BASE_DIR = Path(__file__).parent.parent
-UPLOADS_DIR = BASE_DIR / "uploads"
-LOGS_DIR = BASE_DIR / "logs"
-VECTOR_DB_DIR = BASE_DIR / "vector_db_storage"
 
-# Create directories if they don't exist
-UPLOADS_DIR.mkdir(exist_ok=True)
-LOGS_DIR.mkdir(exist_ok=True)
-VECTOR_DB_DIR.mkdir(exist_ok=True)
+# Persistent storage root.  On Render this points to the mounted disk
+# (/mnt/data).  Locally it falls back to the project root so nothing changes
+# for development.
+PERSISTENT_ROOT = Path(os.getenv("PERSISTENT_VOLUME_PATH", str(BASE_DIR)))
+
+UPLOADS_DIR = PERSISTENT_ROOT / "uploads"
+LOGS_DIR = PERSISTENT_ROOT / "logs"
+VECTOR_DB_DIR = PERSISTENT_ROOT / "vector_db_storage"
+
+# Create directories if they don't exist (parents=True handles the case where
+# the persistent volume root itself hasn't been created yet, e.g. local dev
+# with a custom PERSISTENT_VOLUME_PATH).
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+LOGS_DIR.mkdir(parents=True, exist_ok=True)
+VECTOR_DB_DIR.mkdir(parents=True, exist_ok=True)
 
 # Flask Configuration
 SECRET_KEY = os.getenv("SECRET_KEY", "construction-legal-assistant-secret-key-change-in-production")
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
-# Database Configuration
+# Database Configuration — lives on the persistent volume
 SQLALCHEMY_DATABASE_URI = os.getenv(
     "DATABASE_URL",
-    f"sqlite:///{BASE_DIR / 'construction_legal_assistant.db'}"
+    f"sqlite:///{PERSISTENT_ROOT / 'construction_legal_assistant.db'}"
 )
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 

@@ -12,6 +12,7 @@ except ImportError:
 from pathlib import Path
 import logging
 import os
+import gc
 from threading import Thread
 
 logger = logging.getLogger(__name__)
@@ -28,6 +29,14 @@ def allowed_file(filename):
 def process_law_async(law_id, file_path, project_id, app):
     """Process law document in background thread"""
     from backend.config import OPENAI_API_KEY, TESSERACT_CMD, CHUNK_SIZE, CHUNK_OVERLAP, EMBEDDING_MODEL, AUTO_DELETE_UPLOADS
+
+    # Track large objects so the finally block can free them regardless of
+    # where an exception occurs.
+    extractor = None
+    embedder = None
+    law_db = None
+    pages = None
+    chunks = None
 
     # Use Flask application context
     with app.app_context():
@@ -47,6 +56,7 @@ def process_law_async(law_id, file_path, project_id, app):
 
             # Get law metadata
             metadata = extractor.extract_law_metadata(pages)
+            del extractor; extractor = None  # noqa: E702 — free extractor early
 
             # Update law with extracted info
             law.pages = len(pages)
@@ -63,6 +73,7 @@ def process_law_async(law_id, file_path, project_id, app):
                 doc_type='law',
                 doc_name=law.original_filename
             )
+            del pages; pages = None  # noqa: E702 — raw page text no longer needed
 
             logger.info(f"Created {len(chunks)} chunks from law {law_id}")
 
@@ -72,6 +83,7 @@ def process_law_async(law_id, file_path, project_id, app):
 
             # 4. Add to vector database
             law_db = LawVectorDB(dimension=embedder.get_embedding_dimension())
+            del embedder; embedder = None  # noqa: E702
 
             # Load existing index if it exists (check both .faiss and .npy)
             index_exists = False
@@ -113,6 +125,12 @@ def process_law_async(law_id, file_path, project_id, app):
             law.processing_status = 'failed'
             law.error_message = str(e)
             db.session.commit()
+
+        finally:
+            # Explicitly free all large in-memory objects so the thread does
+            # not hold onto FAISS indexes / numpy arrays / extracted text.
+            del extractor, embedder, law_db, pages, chunks
+            gc.collect()
 
 
 @upload_law_bp.route('/<int:project_id>', methods=['POST'])
